@@ -1,0 +1,95 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Load the dataset
+data = pd.read_csv("Rainfall.csv")
+
+# Check for missing values and handle them (e.g., replace with the mean of each column)
+imputer = SimpleImputer(strategy='mean')
+data.iloc[:, 2:] = imputer.fit_transform(data.iloc[:, 2:])  # Apply imputation to numeric columns
+
+# Include "YEAR" as a feature
+X = data[["YEAR"]].join(data.iloc[:, 2:-5])  # Combine "YEAR" with monthly/seasonal rainfall
+y = data["ANNUAL"].values  # Target variable
+
+# Split the dataset into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale the features for better performance
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Train a Linear Regression model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Define months for dropdown
+months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "Oct-Dec"]
+
+# Streamlit app
+st.title("Rainfall Prediction and Flood Risk Analysis")
+st.sidebar.header("User Input")
+
+# Dropdown menu for selecting a state
+state = st.sidebar.selectbox("Select State", data["STATE"].unique())
+
+# Dropdown menu for selecting a month
+month = st.sidebar.selectbox("Select Month", months)
+
+# Text input for future year
+future_year = st.sidebar.number_input("Enter Future Year (e.g., 2025)", min_value=2024, step=1)
+
+# Prediction button
+if st.sidebar.button("Predict Flood Risk"):
+    # Extract the relevant data for the selected month
+    month_index = months.index(month)
+    selected_month_data = data[data["STATE"] == state].iloc[:, 2:-5].iloc[:, month_index]
+    
+    # Get the average rainfall for the selected month
+    month_avg_rainfall = selected_month_data.mean()
+    
+    # Prepare input data: Use the future year and average rainfall for prediction
+    input_data = [future_year] + [month_avg_rainfall] * 12
+    input_data_array = np.array(input_data).reshape(1, -1)
+    input_data_scaled = scaler.transform(input_data_array)
+    
+    # Predict the annual rainfall
+    predicted_annual_rainfall = model.predict(input_data_scaled)[0]
+    flood_risk_threshold = 1500  # Example threshold for flood risk
+    flood_risk = "No flood risk" if predicted_annual_rainfall < flood_risk_threshold else "Flood risk detected"
+    
+    # Display results
+    st.subheader(f"Prediction for {state} in {month}, {future_year}")
+    st.write(f"Predicted Annual Rainfall: {predicted_annual_rainfall:.2f} mm")
+    st.write(f"Flood Risk: **{flood_risk}**")
+    
+    # Generate data for visualization
+    monthly_rainfall = data[data["STATE"] == state].iloc[:, 2:-5].mean(axis=0)
+    flood_risk_monthly = monthly_rainfall.apply(lambda x: "High" if x > flood_risk_threshold / 12 else "Low")
+    
+    # Plotting
+    fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # Line Graph for Monthly Rainfall
+    ax[0].plot(months, monthly_rainfall, marker='o', label="Average Rainfall")
+    ax[0].axhline(flood_risk_threshold / 12, color="red", linestyle="--", label="Flood Risk Threshold")
+    ax[0].set_title(f"Average Monthly Rainfall in {state}")
+    ax[0].set_ylabel("Rainfall (mm)")
+    ax[0].legend()
+    
+    # Bar Graph for Flood Risk in Months
+    ax[1].bar(months, monthly_rainfall, color=['red' if risk == "High" else 'green' for risk in flood_risk_monthly])
+    ax[1].set_title(f"Flood Risk by Month in {state}")
+    ax[1].set_ylabel("Rainfall (mm)")
+    
+    # Show plots in Streamlit
+    st.pyplot(fig)
+

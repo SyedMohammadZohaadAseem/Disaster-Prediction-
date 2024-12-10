@@ -10,9 +10,6 @@ import matplotlib.pyplot as plt
 # Load the dataset
 data = pd.read_csv("Rainfall.csv")
 
-# Debugging: Print the column names to check if 'STATE' exists
-st.write("Columns in the dataset:", data.columns.tolist())
-
 # Check if 'STATE' is in the columns
 if 'STATE' not in data.columns:
     st.error("Column 'STATE' not found in dataset!")
@@ -56,19 +53,11 @@ future_year = st.sidebar.number_input("Enter Future Year (e.g., 2025)", min_valu
 
 # Prediction button
 if st.sidebar.button("Predict Flood Risk"):
-    # Debugging: Verify selected state
-    st.write(f"Selected state: {state}")
-
     # Extract the relevant data for the selected month
-    # Adjust slicing to ensure all months are included
     monthly_columns = data.columns[2:14]  # Assuming monthly data is in columns 2 to 13
-    st.write("Monthly columns selected:", monthly_columns)
     
     # Select the appropriate monthly data for the selected state
     selected_month_data = data[data["STATE"] == state][monthly_columns].iloc[:, months.index(month)]
-
-    # Debugging: Verify the selected month's data
-    st.write(f"Selected month's data for {month}: {selected_month_data}")
 
     # Get the average rainfall for the selected month
     month_avg_rainfall = selected_month_data.mean()
@@ -91,7 +80,11 @@ if st.sidebar.button("Predict Flood Risk"):
     st.write(f"Flood Risk: **{flood_risk}**")
     
     # Generate data for visualization: Average rainfall for each month
-    monthly_rainfall = data[data["STATE"] == state][monthly_columns].mean(axis=0)
+    monthly_rainfall = data[data["STATE"] == state].iloc[:, 2:-5].mean(axis=0)
+    
+    # Ensure we have the same number of months (in case the data has fewer months)
+    if len(monthly_rainfall) != len(months):
+        months = months[:len(monthly_rainfall)]  # Adjust the months list to match the data length
     
     # Calculate flood risk for each month
     flood_risk_monthly = ["High" if rainfall > flood_risk_threshold / 12 else "Low" for rainfall in monthly_rainfall]

@@ -31,8 +31,8 @@ X_test = scaler.transform(X_test)
 model = LinearRegression()
 model.fit(X_train, y_train)
 
-# Define months for dropdown (make sure this list matches the number of months in the data)
-months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "Oct-Dec"]
+# Define months for dropdown (ensure this list matches the number of months in the data)
+months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
 # Streamlit app
 st.title("Rainfall Prediction and Flood Risk Analysis")
@@ -50,7 +50,9 @@ future_year = st.sidebar.number_input("Enter Future Year (e.g., 2025)", min_valu
 # Prediction button
 if st.sidebar.button("Predict Flood Risk"):
     # Extract the relevant data for the selected month
-    month_index = months.index(month)
+    month_index = months.index(month)  # Get the index for the selected month
+    
+    # Select the appropriate monthly data for the selected state
     selected_month_data = data[data["STATE"] == state].iloc[:, 2:-5].iloc[:, month_index]
     
     # Get the average rainfall for the selected month
@@ -73,15 +75,15 @@ if st.sidebar.button("Predict Flood Risk"):
     st.write(f"Predicted Annual Rainfall: {predicted_annual_rainfall:.2f} mm")
     st.write(f"Flood Risk: **{flood_risk}**")
     
-    # Generate data for visualization
+    # Generate data for visualization: Average rainfall for each month
     monthly_rainfall = data[data["STATE"] == state].iloc[:, 2:-5].mean(axis=0)
     
     # Ensure we have the same number of months (in case the data has fewer months)
     if len(monthly_rainfall) != len(months):
-        # Adjust the months list to match the data length
-        months = months[:len(monthly_rainfall)]
+        months = months[:len(monthly_rainfall)]  # Adjust the months list to match the data length
     
-    flood_risk_monthly = monthly_rainfall.apply(lambda x: "High" if x > flood_risk_threshold / 12 else "Low")
+    # Calculate flood risk for each month
+    flood_risk_monthly = ["High" if rainfall > flood_risk_threshold / 12 else "Low" for rainfall in monthly_rainfall]
     
     # Plotting
     fig, ax = plt.subplots(2, 1, figsize=(10, 8))

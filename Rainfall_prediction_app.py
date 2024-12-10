@@ -11,6 +11,14 @@ import matplotlib.pyplot as plt
 # Load the dataset
 data = pd.read_csv("Rainfall.csv")
 
+# Debugging: Print the column names to check if 'STATE' exists
+print("Columns in the dataset:", data.columns)
+
+# Check if 'STATE' is in the columns
+if 'STATE' not in data.columns:
+    st.error("Column 'STATE' not found in dataset!")
+    st.stop()  # Stop further execution if the column is missing
+
 # Check for missing values and handle them (e.g., replace with the mean of each column)
 imputer = SimpleImputer(strategy='mean')
 data.iloc[:, 2:] = imputer.fit_transform(data.iloc[:, 2:])  # Apply imputation to numeric columns
@@ -49,9 +57,15 @@ future_year = st.sidebar.number_input("Enter Future Year (e.g., 2025)", min_valu
 
 # Prediction button
 if st.sidebar.button("Predict Flood Risk"):
+    # Debugging: Verify selected state
+    st.write(f"Selected state: {state}")
+
     # Extract the relevant data for the selected month
     month_index = months.index(month)  # Get the index for the selected month
     
+    # Debugging: Check if the month_index is valid
+    st.write(f"Month Index: {month_index}")
+
     # Select the appropriate monthly data for the selected state
     selected_month_data = data[data["STATE"] == state].iloc[:, 2:-5].iloc[:, month_index]
     
@@ -102,4 +116,3 @@ if st.sidebar.button("Predict Flood Risk"):
     
     # Show plots in Streamlit
     st.pyplot(fig)
-

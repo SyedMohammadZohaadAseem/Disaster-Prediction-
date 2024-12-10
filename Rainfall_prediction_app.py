@@ -100,3 +100,4 @@ if st.sidebar.button("Predict Flood Risk"):
     
     # Show plots in Streamlit
     st.pyplot(fig)
+

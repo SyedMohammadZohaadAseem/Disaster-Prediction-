@@ -31,7 +31,7 @@ X_test = scaler.transform(X_test)
 model = LinearRegression()
 model.fit(X_train, y_train)
 
-# Define months for dropdown
+# Define months for dropdown (make sure this list matches the number of months in the data)
 months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "Oct-Dec"]
 
 # Streamlit app
@@ -55,10 +55,12 @@ if st.sidebar.button("Predict Flood Risk"):
     
     # Get the average rainfall for the selected month
     month_avg_rainfall = selected_month_data.mean()
-    
+
     # Prepare input data: Use the future year and average rainfall for prediction
-    input_data = [future_year] + [month_avg_rainfall] * 12
+    input_data = [future_year] + [month_avg_rainfall] * (X.shape[1] - 1)  # Matching the number of features in X
     input_data_array = np.array(input_data).reshape(1, -1)
+    
+    # Scale the input data (same scaling as the training data)
     input_data_scaled = scaler.transform(input_data_array)
     
     # Predict the annual rainfall
@@ -73,6 +75,12 @@ if st.sidebar.button("Predict Flood Risk"):
     
     # Generate data for visualization
     monthly_rainfall = data[data["STATE"] == state].iloc[:, 2:-5].mean(axis=0)
+    
+    # Ensure we have the same number of months (in case the data has fewer months)
+    if len(monthly_rainfall) != len(months):
+        # Adjust the months list to match the data length
+        months = months[:len(monthly_rainfall)]
+    
     flood_risk_monthly = monthly_rainfall.apply(lambda x: "High" if x > flood_risk_threshold / 12 else "Low")
     
     # Plotting
@@ -92,4 +100,3 @@ if st.sidebar.button("Predict Flood Risk"):
     
     # Show plots in Streamlit
     st.pyplot(fig)
-
